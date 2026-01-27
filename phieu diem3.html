@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phiếu Điểm AVCB - Logo Cố Định</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; padding: 10px; }
+        .no-print { max-width: 850px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-top: 6px solid #1a5276; }
+        .config-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .field { display: flex; flex-direction: column; }
+        label { font-weight: bold; font-size: 12px; color: #1a5276; margin-bottom: 3px; }
+        input, select { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 13px; }
+        
+        @media print {
+            @page { size: A5; margin: 0; }
+            .no-print { display: none !important; }
+            .report-card { display: block !important; page-break-after: always; }
+        }
+
+        .report-card { 
+            display: none; width: 148mm; height: 210mm; padding: 8mm; margin: 0 auto; 
+            font-family: 'Times New Roman', serif; position: relative; background: white;
+            box-sizing: border-box; border: 3px double #1a5276; 
+        }
+
+        /* LOGO CỐ ĐỊNH BÊN TRÁI PHÍA TRÊN */
+        .header-area { display: flex; align-items: center; border-bottom: 2px solid #1a5276; padding-bottom: 8px; margin-bottom: 12px; }
+        .logo-box { width: 85px; height: 85px; margin-right: 15px; flex-shrink: 0; }
+        .logo-box img { width: 100%; height: 100%; object-fit: contain; }
+        
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 14px; margin-bottom: 10px; line-height: 1.4; }
+        .full-row { grid-column: span 2; }
+        
+        .score-tbl { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .score-tbl th { background: #1a5276; color: white; padding: 6px; font-size: 14px; border: 1px solid #14425e; }
+        .score-tbl td { border: 1px solid #d1d8e0; padding: 5px; text-align: center; font-size: 14px; }
+        .score-tbl tr:nth-child(even) { background: #f8f9fa; }
+        .row-total { background: #fff9db !important; font-weight: bold; color: #d35400; }
+        
+        .neg-word { color: #d93025; font-weight: bold; }
+        .bold-black { font-weight: bold; color: #000; text-decoration: underline; }
+        
+        .remark-box { border: 1px solid #1a5276; padding: 8px; min-height: 65px; font-size: 14px; line-height: 1.3; margin-top: 5px;}
+        .footer { display: flex; justify-content: space-between; font-size: 14px; margin-top: 25px; }
+        
+        .qr-section {
+            position: absolute; bottom: 12mm; left: 8mm; width: 90%;
+            border-top: 1px solid #eee; padding-top: 8px;
+            display: flex; gap: 20px; align-items: center;
+        }
+        .qr-item { display: flex; align-items: center; gap: 8px; }
+        .qr-code { width: 50px; height: 50px; }
+        .qr-text { font-size: 9px; color: #444; font-style: italic; line-height: 1.2; }
+        
+        .print-tag { position: absolute; bottom: 3mm; width: 100%; text-align: center; font-size: 8px; color: #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h3 style="text-align:center; color:#1a5276; margin-top:0;">CẤU HÌNH PHIẾU ĐIỂM AVCB</h3>
+
+    <div class="config-grid">
+        <div class="field"><label>Loại chương trình:</label><select id="classType"><option>Lớp Phổ Thông</option><option>Lớp Giao Tiếp</option></select></div>
+        <div class="field"><label>Tên Giáo viên:</label><input type="text" id="inTea" value="AVCB"></div>
+        <div class="field"><label>Ngày đánh giá:</label><input type="text" id="inEval" value="27/01/2026"></div>
+        <div class="field"><label>Ngày bắt đầu khóa:</label><input type="text" id="inStart" value="01/10/2025"></div>
+        <div class="field"><label>Ngày kết thúc khóa:</label><input type="text" id="inEnd" value="20/01/2026"></div>
+        <div class="field"><label>Tên Lớp (VD: Flyers K24):</label><input type="text" id="inClassName" value="Flyers K24"></div>
+        <div class="field">
+            <label>Ca học:</label>
+            <select id="inShift">
+                <option>T3-T5 (18:15 ~ 19:45)</option>
+                <option>T4-T6 (18:15 ~ 19:45)</option>
+                <option>T7-CN (16:15 ~ 17:45)</option>
+                <option>T7-CN (18:00 ~ 19:30)</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="background:#eef2f7; padding:15px; border:1px dashed #1a5276; text-align:center; margin-bottom:15px;">
+        <label>BƯỚC 1: CHỌN FILE EXCEL</label> <input type="file" id="fileExcel" accept=".xlsx, .xls">
+    </div>
+
+    <div id="mappingArea" style="display:none; background:#fffbe6; padding:15px; border:1px solid #ffeeba; margin-bottom:15px;">
+        <h4 style="margin:0 0 10px 0;">BƯỚC 2: KHỚP CỘT DỮ LIỆU</h4>
+        <div class="config-grid" id="columnSelectors"></div>
+    </div>
+
+    <div id="step2Area" style="display:none;">
+        <button onclick="doPrint()" style="background:#27ae60; color:white; width:100%; padding:15px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:16px;">XUẤT PHIẾU ĐIỂM (KHỔ A5)</button>
+    </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+    let rawData = [];
+    const appleLink = "https://apps.apple.com/vn/app/avcb/id1672556634?l=vi";
+    const androidLink = "https://play.google.com/store/apps/details?id=dotb.cloud.avcb&hl=vi";
+    
+    // TÊN FILE LOGO CHỊ ĐÃ CUNG CẤP
+    const logoURL = "LOGO AVCB FINAL_logoAVCB final-white background.png"; 
+
+    const fields = [
+        {id: 'colName', label: 'Tên Học Sinh', keys: ['student', 'tên']},
+        {id: 'colRW', label: 'Reading-Writing', keys: ['đọc', 'writing']},
+        {id: 'colL', label: 'Listening', keys: ['nghe', 'listening']},
+        {id: 'colS', label: 'Speaking', keys: ['nói', 'speaking']},
+        {id: 'colP', label: 'Participation', keys: ['tham gia']},
+        {id: 'colTotal', label: 'Overall Score', keys: ['tổng', 'total']},
+        {id: 'colClass', label: 'Classification', keys: ['loại']},
+        {id: 'colRem', label: 'Remarks', keys: ['nhận xét', 'remarks']}
+    ];
+
+    document.getElementById('fileExcel').addEventListener('change', function(e) {
+        let reader = new FileReader();
+        reader.onload = function(evt) {
+            let workbook = XLSX.read(evt.target.result, {type: 'binary'});
+            rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: ""});
+            setupSelectors(Object.keys(rawData[0]));
+        };
+        reader.readAsBinaryString(e.target.files[0]);
+    });
+
+    function setupSelectors(headers) {
+        let html = "";
+        fields.forEach(f => {
+            html += `<div class="field"><label>${f.label}:</label><select id="${f.id}">`;
+            headers.forEach(h => {
+                let selected = f.keys.some(k => h.toLowerCase().includes(k.toLowerCase())) ? "selected" : "";
+                html += `<option value="${h}" ${selected}>${h}</option>`;
+            });
+            html += `</select></div>`;
+        });
+        document.getElementById('columnSelectors').innerHTML = html;
+        document.getElementById('mappingArea').style.display = 'block';
+        document.getElementById('step2Area').style.display = 'block';
+    }
+
+    function formatRemark(text) {
+        if(!text) return "";
+        const negs = ["yếu", "kém", "cần cố gắng", "lười", "không tập trung", "ồn", "nói chuyện"];
+        let result = text;
+        negs.forEach(w => { result = result.replace(new RegExp(`(${w})`, 'gi'), '<span class="neg-word">$1</span>'); });
+        result = result.replace(new RegExp('(chưa)', 'gi'), '<span class="bold-black">$1</span>');
+        return result;
+    }
+
+    function doPrint() {
+        let area = document.getElementById('printArea');
+        area.innerHTML = "";
+        let mapping = {};
+        fields.forEach(f => mapping[f.id] = document.getElementById(f.id).value);
+        let sorted = [...rawData].sort((a,b) => (parseFloat(b[mapping.colTotal])||0) - (parseFloat(a[mapping.colTotal])||0));
+
+        rawData.forEach((r, i) => {
+            if(!r[mapping.colName]) return;
+            let rank = sorted.findIndex(x => x[mapping.colName] === r[mapping.colName]) + 1;
+            let qrAppleId = "qra-" + i;
+            let qrAndroidId = "qrg-" + i;
+            
+            area.innerHTML += `
+            <div class="report-card">
+                <div class="header-area">
+                    <div class="logo-box"><img src="${logoURL}"></div>
+                    <div style="flex:1; text-align:center;">
+                        <h2 style="margin:0; font-size:22px; color:#1a5276;">ANH VĂN CÔ BÌNH</h2>
+                        <h1 style="margin:2px 0; font-size:18px; letter-spacing: 1px;">ENGLISH REPORT CARD</h1>
+                        <p style="margin:0; font-size:12px; font-style:italic;">(${document.getElementById('classType').value})</p>
+                    </div>
+                </div>
+                
+                <div class="info-grid">
+                    <div><b>Học sinh:</b> ${r[mapping.colName]}</div>
+                    <div><b>Giáo viên:</b> ${document.getElementById('inTea').value}</div>
+                    <div><b>Ca học:</b> ${document.getElementById('inShift').value}</div>
+                    <div><b>Lớp:</b> ${document.getElementById('inClassName').value}</div>
+                    <div><b>Ngày đánh giá:</b> ${document.getElementById('inEval').value}</div>
+                    <div></div>
+                    <div class="full-row"><b>Ngày bắt đầu - kết thúc khóa học:</b> ${document.getElementById('inStart').value} - ${document.getElementById('inEnd').value}</div>
+                </div>
+
+                <table class="score-tbl">
+                    <thead><tr><th width="75%">NỘI DUNG ĐÁNH GIÁ</th><th>KẾT QUẢ</th></tr></thead>
+                    <tbody>
+                        <tr><td style="text-align:left">1. Reading - Writing (Đọc & Viết)</td><td><b>${r[mapping.colRW]}</b></td></tr>
+                        <tr><td style="text-align:left">2. Listening (Nghe)</td><td><b>${r[mapping.colL]}</b></td></tr>
+                        <tr><td style="text-align:left">3. Speaking (Nói)</td><td><b>${r[mapping.colS]}</b></td></tr>
+                        <tr><td style="text-align:left">4. Participation (Chuyên cần)</td><td><b>${r[mapping.colP]}</b></td></tr>
+                        <tr class="row-total"><td style="text-align:left">5. Overall Score (Tổng điểm)</td><td>${r[mapping.colTotal]}</td></tr>
+                        <tr><td style="text-align:left">6. Classification (Xếp loại)</td><td><b>${r[mapping.colClass]}</b></td></tr>
+                        <tr><td style="text-align:left">7. Class Rank (Hạng trong lớp)</td><td><b>${rank}</b></td></tr>
+                    </tbody>
+                </table>
+
+                <div class="remark-box"><b>8. Nhận xét của giáo viên:</b><br>${formatRemark(r[mapping.colRem])}</div>
+
+                <div class="footer">
+                    <div><b>Chữ ký phụ huynh</b></div>
+                    <div style="text-align:center">
+                        <br><br><br>
+                        <b></b>
+                    </div>
+                </div>
+
+                <div class="qr-section">
+                    <div class="qr-item">
+                        <div id="${qrAppleId}" class="qr-code"></div>
+                        <div class="qr-text"><b>iOS App</b><br>Quét để tải</div>
+                    </div>
+                    <div class="qr-item">
+                        <div id="${qrAndroidId}" class="qr-code"></div>
+                        <div class="qr-text"><b>Android App</b><br>Quét để tải</div>
+                    </div>
+                </div>
+                <div class="print-tag">Anh Văn Cô Bình - In ngày ${new Date().toLocaleDateString('vi-VN')}</div>
+            </div>`;
+
+            setTimeout(() => { 
+                new QRCode(document.getElementById(qrAppleId), { text: appleLink, width: 50, height: 50 }); 
+                new QRCode(document.getElementById(qrAndroidId), { text: androidLink, width: 50, height: 50 }); 
+            }, 200);
+        });
+        setTimeout(() => { window.print(); }, 1000);
+    }
+</script>
+</body>
+</html>
